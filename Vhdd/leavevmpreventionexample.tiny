@@ -1,0 +1,10 @@
+// leavevmpreventionexample.tiny
+CLS
+PRINT "Attempting to read C# Source Code..."
+PRINT_LINE
+
+// Go up one folder (out of Vhdd) and read the Program.cs file
+STRING "..\Program.cs"
+REVEAL
+
+PRINT_BUF
