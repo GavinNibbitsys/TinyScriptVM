@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "TinyCS_VM/1.0.0": {
+        "runtime": {
+          "TinyCS_VM.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "TinyCS_VM/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

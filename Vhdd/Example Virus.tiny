@@ -1,0 +1,7 @@
+STRING "(ALL)"
+SCRAMBLE
+PRINT "GET F***ED"
+SET R0 0        // memory address 0
+SET R1 99       // illegal opcode
+RAM_WRITE R0 R1
+GOTO 0

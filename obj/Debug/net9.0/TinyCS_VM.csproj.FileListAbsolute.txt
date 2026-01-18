@@ -1,0 +1,14 @@
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\bin\Debug\net9.0\TinyCS_VM.exe
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\bin\Debug\net9.0\TinyCS_VM.deps.json
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\bin\Debug\net9.0\TinyCS_VM.runtimeconfig.json
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\bin\Debug\net9.0\TinyCS_VM.dll
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\bin\Debug\net9.0\TinyCS_VM.pdb
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\obj\Debug\net9.0\TinyCS_VM.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\obj\Debug\net9.0\TinyCS_VM.AssemblyInfoInputs.cache
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\obj\Debug\net9.0\TinyCS_VM.AssemblyInfo.cs
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\obj\Debug\net9.0\TinyCS_VM.csproj.CoreCompileInputs.cache
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\obj\Debug\net9.0\TinyCS_VM.dll
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\obj\Debug\net9.0\refint\TinyCS_VM.dll
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\obj\Debug\net9.0\TinyCS_VM.pdb
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\obj\Debug\net9.0\TinyCS_VM.genruntimeconfig.cache
+C:\Users\srurt\OneDrive\Desktop\TinyCS_VM\obj\Debug\net9.0\ref\TinyCS_VM.dll
