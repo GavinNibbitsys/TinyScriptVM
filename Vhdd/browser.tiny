@@ -1,0 +1,34 @@
+// --- TINY NETSCAPE v1.0 ---
+CLS
+PRINT_LINE
+PRINT "--- NETSCAPE NAVIGATOR ---"
+PRINT_LINE
+PRINT "Status: ONLINE"
+PRINT_LINE
+
+Menu:
+    PRINT "D for Download P For ping. What do you want to do"
+    PRINT_LINE
+    INPUT_STRING
+    CMD "D" DoDownload
+    CMD "P" DoPing
+DoPing:
+    PRINT "Enter Domain (e.g. google.com): "
+    INPUT_STRING
+    PING
+    GOTO Menu
+
+DoDownload:
+    PRINT "Enter Domain (e.g. example.com): "
+    INPUT_STRING
+    
+    // Downloads to Buffer
+    DOWNLOAD
+    
+    // Show Buffer
+    PRINT_LINE
+    PRINT "--- PAGE SOURCE ---"
+    PRINT_LINE
+    PRINT_BUF
+    PRINT_LINE
+    GOTO Menu
