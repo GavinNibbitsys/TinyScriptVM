@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,7 +26,7 @@ namespace TinyCS_VM
         public string StringBuffer = "";
         public bool ShouldLoadNewProgram = false;
         
-        // STORAGE: Strictly uses "Vhdd" folder for data (text files, notes)
+        // STORAGE: Strictly uses "Vhdd" folder for data
         private string VhddPath = Path.Combine(Directory.GetCurrentDirectory(), "Vhdd");
         private Random _rng = new Random();
         private static readonly HttpClient _httpClient = new HttpClient();
@@ -34,6 +34,28 @@ namespace TinyCS_VM
         public VirtualMachine()
         {
             if (!Directory.Exists(VhddPath)) Directory.CreateDirectory(VhddPath);
+        }
+
+        // --- SECURITY HELPER: THE SANDBOX ---
+        private bool GetSafePath(string filename, out string fullPath)
+        {
+            fullPath = null;
+            if (string.IsNullOrWhiteSpace(filename)) return false;
+
+            // 1. Resolve the absolute path
+            string potentialPath = Path.Combine(VhddPath, filename);
+            string resolvedPath = Path.GetFullPath(potentialPath);
+
+            // 2. Ensure it starts with the Vhdd folder path
+            string vhddAbs = Path.GetFullPath(VhddPath);
+            
+            if (resolvedPath.StartsWith(vhddAbs, StringComparison.OrdinalIgnoreCase))
+            {
+                fullPath = resolvedPath;
+                return true;
+            }
+
+            return false; // Access Denied
         }
 
         public void Run(byte[] program)
@@ -76,7 +98,7 @@ namespace TinyCS_VM
                             StringBuffer = sVal; break;
                         case OpCode.INPUT_INT:
                             int rInt = ReadReg();
-                            string rawInput = Console.ReadLine() ?? ""; // Safety: Handle null
+                            string rawInput = Console.ReadLine() ?? "";
                             if (int.TryParse(rawInput, out int parsedInt)) 
                                 _registers[rInt] = parsedInt;
                             else 
@@ -88,6 +110,7 @@ namespace TinyCS_VM
                             for (int i = 0; i < strLen; i++) cmd += (char)_memory[_ip++];
                             int jumpTarget = ReadAddress();
                             string input = StringBuffer.Trim();
+                            // Case-insensitive check, handles arguments (e.g. "cat file.txt")
                             if (input.Equals(cmd, StringComparison.OrdinalIgnoreCase) || input.StartsWith(cmd + " ", StringComparison.OrdinalIgnoreCase))
                             {
                                 if (input.Length > cmd.Length) StringBuffer = input.Substring(cmd.Length).Trim(); else StringBuffer = "";
@@ -95,29 +118,62 @@ namespace TinyCS_VM
                             }
                             break;
 
-                        // --- DISK OPERATIONS (Targeting Vhdd folder for DATA) ---
+                        // --- DISK OPERATIONS (SECURED) ---
                         case OpCode.FILE_LIST:
                             Console.WriteLine("\n--- VHDD STORAGE ---");
                             foreach (var f in Directory.GetFiles(VhddPath)) Console.WriteLine($" [DATA] {Path.GetFileName(f)}");
                             Console.WriteLine("--------------------"); break;
+
                         case OpCode.FILE_CREATE:
-                            if (!string.IsNullOrEmpty(StringBuffer)) File.WriteAllText(Path.Combine(VhddPath, StringBuffer), "Empty Object"); break;
+                            if (!string.IsNullOrEmpty(StringBuffer)) 
+                            {
+                                if (GetSafePath(StringBuffer, out string pathCreate))
+                                    File.WriteAllText(pathCreate, "Empty Object");
+                                else
+                                    Console.WriteLine("[SEC_ERR] Access Denied: Path outside sandbox.");
+                            }
+                            break;
+
                         case OpCode.FILE_DELETE:
-                            string pDel = Path.Combine(VhddPath, StringBuffer);
-                            if (File.Exists(pDel)) { File.Delete(pDel); Console.WriteLine($"[SYSTEM]: Deleted {StringBuffer}"); } break;
+                            if (GetSafePath(StringBuffer, out string pathDel) && File.Exists(pathDel))
+                            {
+                                File.Delete(pathDel); 
+                                Console.WriteLine($"[SYSTEM]: Deleted {StringBuffer}");
+                            }
+                            else
+                            {
+                                Console.WriteLine("[SEC_ERR] File not found or Access Denied.");
+                            }
+                            break;
+
                         case OpCode.FILE_READ:
-                            string pRead = Path.Combine(VhddPath, StringBuffer);
-                            if (File.Exists(pRead)) StringBuffer = File.ReadAllText(pRead); else StringBuffer = "Error: Not found in Vhdd."; break;
+                            if (GetSafePath(StringBuffer, out string pathRead) && File.Exists(pathRead))
+                                StringBuffer = File.ReadAllText(pathRead);
+                            else 
+                                StringBuffer = "Error: File not found or Access Denied."; 
+                            break;
                         
-                        // EXEC: Stops VM so Main can load a new script from ROOT
+                        // EXEC: Stops VM so Main can load a new script
                         case OpCode.FILE_EXEC:
                             running = false; ShouldLoadNewProgram = true; break;
 
                         case OpCode.MAKE_NOTE:
-                            Console.WriteLine("\n--- NOTE CREATOR ---"); Console.Write("Filename: ");
-                            string name = Console.ReadLine(); Console.Write("Content: "); string content = Console.ReadLine();
-                            if (!string.IsNullOrEmpty(name)) { File.WriteAllText(Path.Combine(VhddPath, name), content); Console.WriteLine("Saved to Vhdd."); } break;
-                        case OpCode.SYS_INFO: StringBuffer = $"Host: TinyVM | OS: RevertOS | Mem: {_memory.Length}b"; break;
+                            Console.WriteLine("\n--- NOTE CREATOR ---"); 
+                            Console.Write("Filename: ");
+                            string name = Console.ReadLine(); 
+                            Console.Write("Content: "); 
+                            string content = Console.ReadLine();
+                            
+                            if (GetSafePath(name, out string safeNotePath)) { 
+                                File.WriteAllText(safeNotePath, content); 
+                                Console.WriteLine("Saved to Vhdd."); 
+                            } 
+                            else {
+                                Console.WriteLine("[SEC_ERR] Invalid filename.");
+                            }
+                            break;
+
+                        case OpCode.SYS_INFO: StringBuffer = $"Host: TinyVM | OS: RevertOS | Mem: {_memory.Length}b | Secure: YES"; break;
                         
                         case OpCode.SCRAMBLE_FILE:
                             string target = StringBuffer.Trim();
@@ -128,18 +184,46 @@ namespace TinyCS_VM
                             }
                             else
                             {
-                                string specificFile = Path.Combine(VhddPath, target);
-                                if (File.Exists(specificFile)) { CorruptFile(specificFile); Console.WriteLine($" -> Corrupted: {target}"); }
+                                if (GetSafePath(target, out string safeScramblePath) && File.Exists(safeScramblePath)) {
+                                    CorruptFile(safeScramblePath); 
+                                    Console.WriteLine($" -> Corrupted: {target}");
+                                }
+                                else {
+                                    Console.WriteLine("[SEC_ERR] File not found or Access Denied.");
+                                }
                             }
                             break;
 
                         case OpCode.CLEAR_SCR: Console.Clear(); break;
 
-                        // --- NETWORK ---
+                        // --- NETWORK (FIXED) ---
                         case OpCode.NET_PING:
-                            try { Ping p = new Ping(); Console.Write($"Pinging {StringBuffer}... "); PingReply reply = p.Send(StringBuffer); if (reply.Status == IPStatus.Success) Console.WriteLine($"[ONLINE] {reply.RoundtripTime}ms"); else Console.WriteLine("[OFFLINE]"); } catch { Console.WriteLine("[ERROR] Invalid Host"); } break;
+                            if (string.IsNullOrWhiteSpace(StringBuffer)) { Console.WriteLine("Ping Error: No host."); break; }
+                            try 
+                            { 
+                                using (Ping p = new Ping()) {
+                                    Console.Write($"Pinging {StringBuffer}... "); 
+                                    PingReply reply = p.Send(StringBuffer, 2000); // 2s Timeout
+                                    if (reply.Status == IPStatus.Success) Console.WriteLine($"[ONLINE] {reply.RoundtripTime}ms"); 
+                                    else Console.WriteLine($"[OFFLINE] ({reply.Status})"); 
+                                }
+                            } 
+                            catch { Console.WriteLine("[ERROR] Host Unreachable"); } 
+                            break;
+
                         case OpCode.NET_GET:
-                            try { Console.WriteLine($"Downloading from {StringBuffer}..."); string webContent = _httpClient.GetStringAsync("http://" + StringBuffer).GetAwaiter().GetResult(); if (webContent.Length > 2000) webContent = webContent.Substring(0, 2000) + "\n...[TRUNCATED]"; StringBuffer = webContent; Console.WriteLine("Download Complete."); } catch (Exception ex) { Console.WriteLine($"[NET ERROR]: {ex.Message}"); StringBuffer = "Error"; } break;
+                            try 
+                            { 
+                                Console.WriteLine($"Downloading from {StringBuffer}..."); 
+                                // Basic cleanup to ensure protocol exists
+                                string url = StringBuffer.StartsWith("http") ? StringBuffer : "http://" + StringBuffer;
+                                string webContent = _httpClient.GetStringAsync(url).GetAwaiter().GetResult(); 
+                                if (webContent.Length > 4000) webContent = webContent.Substring(0, 4000) + "\n...[TRUNCATED]"; 
+                                StringBuffer = webContent; 
+                                Console.WriteLine("Download Complete."); 
+                            } 
+                            catch (Exception ex) { Console.WriteLine($"[NET ERROR]: {ex.Message}"); StringBuffer = "Error"; } 
+                            break;
 
                         default: throw new Exception($"Illegal OpCode {_memory[_ip - 1]}");
                     }
@@ -220,15 +304,15 @@ namespace TinyCS_VM
             string currentProgram = "";
 
             // --- BOOTLOADER: Look for OS in Root only ---
-            string[] osFiles = Directory.GetFiles(rootDir, "*.tiny");
-
-            if (osFiles.Length == 0)
+            // Prioritizes "neos.tiny", then "os.tiny", then anything else.
+            if (File.Exists(Path.Combine(rootDir, "neos.tiny"))) currentProgram = Path.Combine(rootDir, "neos.tiny");
+            else if (File.Exists(Path.Combine(rootDir, "os.tiny"))) currentProgram = Path.Combine(rootDir, "os.tiny");
+            else 
             {
-                Console.WriteLine("[Boot Error]: No .tiny file found in Root.");
-                return;
+                string[] osFiles = Directory.GetFiles(rootDir, "*.tiny");
+                if (osFiles.Length > 0) currentProgram = osFiles[0];
+                else { Console.WriteLine("[Boot Error]: No .tiny file found in Root."); return; }
             }
-            // Auto-select first found OS for simplicity
-            currentProgram = osFiles[0]; 
 
             while (true)
             {
@@ -237,31 +321,21 @@ namespace TinyCS_VM
                 // --- EXEC COMMAND HANDLER ---
                 if (vm.ShouldLoadNewProgram)
                 {
-                    string requestedFile = vm.StringBuffer.Trim(); // filename from INPUT_STRING
+                    string requestedFile = vm.StringBuffer.Trim(); 
                     if (requestedFile.ToLower() == "exit") break;
 
-                    // 1. Check Root Directory
                     string pathRoot = Path.Combine(rootDir, requestedFile);
-                    
-                    // 2. Check Vhdd Directory
                     string pathVhdd = Path.Combine(vhddDir, requestedFile);
 
-                    if (File.Exists(pathRoot))
-                    {
-                        currentProgram = pathRoot;
-                        Console.Clear();
-                    }
-                    else if (File.Exists(pathVhdd))
-                    {
-                        currentProgram = pathVhdd;
-                        Console.Clear();
-                    }
+                    // Note: This logic allows loading scripts from Root (System Files) or Vhdd (User Files)
+                    if (File.Exists(pathRoot)) { currentProgram = pathRoot; Console.Clear(); }
+                    else if (File.Exists(pathVhdd)) { currentProgram = pathVhdd; Console.Clear(); }
                     else
                     {
-                        Console.WriteLine($"\n[System Error]: File '{requestedFile}' not found in Root or Vhdd.");
+                        Console.WriteLine($"\n[System Error]: File '{requestedFile}' not found.");
                         Console.WriteLine("Press any key to return to OS...");
                         Console.ReadKey();
-                        // Loop continues, reloading the last valid 'currentProgram' (the OS)
+                        // Loop continues, reloading the last valid 'currentProgram'
                     }
                 }
                 else
