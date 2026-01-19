@@ -1,0 +1,205 @@
+// ==========================================
+//   M O S   -   Modern Operating System
+//   v2.2    |   Web Edition
+// ==========================================
+
+BOOT:
+CLS
+PRINT "Initializing MOS Kernel v2.2..."
+PRINT_LINE
+IDENTITY
+PRINT_LINE
+PRINT "Mounting VHDD..."
+PRINT_LINE
+STRING "Boot OK."
+WRITE "bootlog.txt"
+PRINT "Boot log updated."
+PRINT_LINE
+PRINT_LINE
+
+// --- MAIN SHELL ---
+SHELL:
+PRINT "MOS> "
+INPUT_STRING
+
+// --- COMMAND ROUTING ---
+CMD "help"   SHOW_HELP
+CMD "cls"    DO_CLEAR
+CMD "ls"     DO_LIST
+CMD "info"   DO_INFO
+CMD "calc"   APP_CALC
+CMD "net"    APP_NET
+CMD "write"  DO_WRITE_AUTO
+CMD "note"   DO_NOTE_MANUAL
+CMD "cat"    DO_READ
+CMD "rm"     DO_DELETE
+CMD "chaos"  DO_SCRAMBLE
+CMD "run"    DO_EXEC
+CMD "exit"   DO_SHUTDOWN
+
+PRINT "Unknown command. Type 'help'."
+PRINT_LINE
+GOTO SHELL
+
+// --- SYSTEM FEATURES ---
+
+SHOW_HELP:
+PRINT_LINE
+PRINT "--- COMMAND LIST ---"
+PRINT_LINE
+PRINT " [FILES] ls, cat, rm, note, write"
+PRINT_LINE
+PRINT " [APPS]  calc, net, run"
+PRINT_LINE
+PRINT " [SYS]   cls, info, chaos, exit"
+PRINT_LINE
+GOTO SHELL
+
+DO_CLEAR:
+CLS
+PRINT "MOS Shell Ready."
+PRINT_LINE
+GOTO SHELL
+
+DO_INFO:
+PRINT_LINE
+IDENTITY
+PRINT_LINE
+GOTO SHELL
+
+DO_LIST:
+PRINT_LINE
+VIEW
+PRINT_LINE
+GOTO SHELL
+
+DO_READ:
+PRINT "Filename> "
+INPUT_STRING
+REVEAL
+PRINT_LINE
+PRINT "--- FILE START ---"
+PRINT_LINE
+PRINT_BUF
+PRINT_LINE
+PRINT "---  FILE END  ---"
+PRINT_LINE
+GOTO SHELL
+
+DO_DELETE:
+PRINT "Delete File> "
+INPUT_STRING
+VOID
+GOTO SHELL
+
+DO_NOTE_MANUAL:
+WRITE_NOTE
+GOTO SHELL
+
+DO_WRITE_AUTO:
+PRINT "Enter text to save to 'quick.txt':"
+PRINT_LINE
+INPUT_STRING
+WRITE "quick.txt"
+GOTO SHELL
+
+DO_SCRAMBLE:
+PRINT "Target Filename (or (ALL)): "
+INPUT_STRING
+SCRAMBLE
+PRINT_LINE
+PRINT "File scrambled."
+PRINT_LINE
+GOTO SHELL
+
+DO_EXEC:
+PRINT "Script Name> "
+INPUT_STRING
+EXEC
+GOTO SHELL
+
+// --- CALCULATOR APP ---
+APP_CALC:
+PRINT_LINE
+PRINT "--- MATH CORE ---"
+PRINT_LINE
+PRINT "Enter X: "
+INPUT_NUM R0
+PRINT "Enter Y: "
+INPUT_NUM R1
+PRINT_LINE
+PRINT "1(+) 2(-) 3(*) 4(/)"
+PRINT "Op> "
+INPUT_STRING
+CMD "1" CALC_ADD
+CMD "2" CALC_SUB
+CMD "3" CALC_MUL
+CMD "4" CALC_DIV
+GOTO APP_CALC
+
+CALC_ADD:
+ADD R0 R1
+GOTO CALC_RES
+CALC_SUB:
+SUB R0 R1
+GOTO CALC_RES
+CALC_MUL:
+MUL R0 R1
+GOTO CALC_RES
+CALC_DIV:
+DIV R0 R1
+GOTO CALC_RES
+CALC_RES:
+PRINT "Result: "
+PRINT_REG R0
+PRINT_LINE
+GOTO SHELL
+
+// --- NETWORK APP (UPDATED) ---
+APP_NET:
+PRINT_LINE
+PRINT "--- NET MENU ---"
+PRINT_LINE
+PRINT "1. Ping Host"
+PRINT_LINE
+PRINT "2. Download HTML"
+PRINT_LINE
+PRINT "Select> "
+INPUT_STRING
+CMD "1" NET_PING_HOST
+CMD "2" NET_GET_PAGE
+GOTO SHELL
+
+NET_PING_HOST:
+PRINT "Host> "
+INPUT_STRING
+PING
+GOTO SHELL
+
+NET_GET_PAGE:
+PRINT "URL (no http)> "
+INPUT_STRING
+PRINT "Fetching HTML (Max 8KB)..."
+// This downloads the page to the Buffer
+DOWNLOAD
+PRINT_LINE
+PRINT "Download complete."
+PRINT_LINE
+PRINT "Save HTML to file? (y/n)"
+INPUT_STRING
+CMD "y" NET_SAVE
+GOTO SHELL
+
+NET_SAVE:
+// 1. Copy the 8KB HTML content to internal Clipboard
+COPY
+// 2. Clear buffer to ask for filename
+PRINT "Save as filename (e.g. index.html)> "
+INPUT_STRING
+// 3. Save the Clipboard (HTML) to the File
+SAVE_AS
+GOTO SHELL
+
+DO_SHUTDOWN:
+PRINT "Shutting down system..."
+EXIT
